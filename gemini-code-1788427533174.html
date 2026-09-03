@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>تعدين TON المميز</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src='//libtl.com/sdk.js' data-zone='11693797' data-sdk='show_11693797'></script>
+    <style>
+        /* =========================================
+           PREMIUM DARK THEME & VARIABLES
+        ========================================= */
+        :root {
+            --bg-main: #0a0b0e;
+            --bg-card: #14161c;
+            --border-card: rgba(255, 255, 255, 0.04);
+            --text-primary: #ffffff;
+            --text-secondary: #8b8e98;
+            --accent-green: #1fd159;
+            --accent-green-hover: #19b049;
+            --accent-blue: #0098ea;
+            --btn-disabled: #232630;
+            --glow-green: rgba(31, 209, 89, 0.2);
+            --glow-blue: rgba(0, 152, 234, 0.3);
+            --star-gold: #ffd700;
+            --tier-purple: #8b5cf6;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            user-select: none;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* =========================================
+           ENHANCED SIX-SECOND LOADING SCREEN
+        ========================================= */
+        #loader {
+            position: fixed; inset: 0; background: var(--bg-main);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .loader-wrapper {
+            position: relative;
+            display: flex; justify-content: center; align-items: center;
+            margin-bottom: 40px;
+        }
+        .loader-ring {
+            position: absolute;
+            width: 140px; height: 140px;
+            border: 2px dashed var(--accent-blue);
+            border-radius: 50%;
+            animation: spinRing 4s linear infinite;
+            opacity: 0.5;
+        }
+        .loader-ring-2 {
+            position: absolute;
+            width: 115px; height: 115px;
+            border: 2px solid transparent;
+            border-top: 2px solid var(--accent-green);
+            border-bottom: 2px solid var(--accent-green);
+            border-radius: 50%;
+            animation: spinRingReverse 2s linear infinite;
+        }
+        .loader-coin {
+            width: 90px; height: 90px;
+            background: radial-gradient(circle at 30% 30%, #36b5ff, var(--accent-blue));
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 40px rgba(0, 152, 234, 0.4);
+            animation: pulseCoin 1.5s infinite alternate; 
+            z-index: 2;
+        }
+        .loader-coin svg { width: 45px; height: 45px; fill: white; }
+        .loader-text { font-size: 14px; font-weight: 600; color: var(--text-secondary); letter-spacing: 1px; margin-bottom: 15px; }
+        .loader-track { width: 220px; height: 4px; background: var(--bg-card); border-radius: 4px; overflow: hidden; }
+        .loader-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-green)); transition: width 0.5s ease; box-shadow: 0 0 10px var(--accent-green); }
+
+        /* =========================================
+           APP CONTAINER & HEADER
+        ========================================= */
+        #app { flex: 1; overflow-y: auto; padding: 20px 16px 100px 16px; display: none; opacity: 0; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .user-profile { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 42px; height: 42px; border-radius: 50%; background: #262a34; display: flex; align-items: center; justify-content: center; font-size: 20px;}
+        .greeting h1 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+        .balance-badge { display: flex; align-items: center; gap: 6px; background: rgba(0, 152, 234, 0.1); padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1px solid rgba(0, 152, 234, 0.2); }
+        .balance-badge span.usd { color: var(--accent-green); font-size: 11px; font-weight: 600; margin-right: 4px; }
+
+        /* =========================================
+           MAIN MINING CARD
+        ========================================= */
+        .card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 24px; padding: 20px; margin-bottom: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); position: relative; overflow: hidden; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .status-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .status-dot { width: 8px; height: 8px; background: var(--text-secondary); border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .status-dot.active { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); animation: blink 1.5s infinite; }
+        .status-sub { font-size: 13px; color: var(--text-secondary); }
+        .timer-box { text-align: left; }
+        .timer-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+        .timer-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; direction: ltr; display: inline-block; }
+
+        /* Live Mining Illusion Text */
+        .live-counter-box { text-align: center; margin-bottom: 25px; margin-top: -10px; }
+        .live-counter { font-size: 26px; font-family: monospace; font-weight: bold; color: var(--accent-green); text-shadow: 0 0 15px var(--glow-green); direction: ltr; display: inline-block; }
+        .live-counter.idle { color: var(--text-secondary); text-shadow: none; }
+
+        /* TON Visual 3D Illusion */
+        .ton-visual { display: flex; justify-content: center; margin: 20px 0 35px 0; }
+        .ton-hex { width: 130px; height: 130px; background: linear-gradient(135deg, #0098ea, #007bc0); border-radius: 35px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 4px 15px rgba(255,255,255,0.4), 0 15px 35px rgba(0, 152, 234, 0.3); animation: float 4s ease-in-out infinite; position: relative; }
+        .ton-hex.active-mining { animation: floatFast 2s ease-in-out infinite; box-shadow: inset 0 4px 15px rgba(255,255,255,0.4), 0 0 50px var(--glow-blue); }
+        .ton-hex svg { width: 65px; height: 65px; fill: white; transform: rotate(-45deg); }
+
+        /* Progress Bar */
+        .progress-info { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+        .progress-track { width: 100%; height: 14px; background: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-card); margin-bottom: 20px; position: relative; direction: ltr; }
+        .progress-fill { height: 100%; width: 0%; background: var(--accent-green); border-radius: 10px; box-shadow: 0 0 15px var(--glow-green); position: relative; transition: width 0.1s linear; }
+        .progress-fill::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 30px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shine 1.5s infinite; }
+
+        /* Buttons */
+        .btn { width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 700; border: none; outline: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
+        .btn-green { background: var(--accent-green); color: black; box-shadow: 0 4px 15px var(--glow-green); }
+        .btn-green:active { transform: scale(0.97); }
+        .btn-blue { background: var(--accent-blue); color: white; box-shadow: 0 4px 15px var(--glow-blue); animation: pulseBtn 2s infinite; }
+        .btn-blue:active { transform: scale(0.97); }
+        .btn-disabled { background: var(--btn-disabled); color: var(--text-secondary); pointer-events: none; box-shadow: none; animation: none; }
+
+        /* =========================================
+           ACTION CARDS (BOOSTERS)
+        ========================================= */
+        .action-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); padding: 16px; border-radius: 20px; margin-bottom: 12px; border: 1px solid var(--border-card); cursor: pointer; transition: background 0.2s; }
+        .action-row:active { background: #1a1d24; }
+        .action-left { display: flex; align-items: center; gap: 16px; }
+        .icon-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .ic-invite { background: rgba(31, 209, 89, 0.1); color: var(--accent-green); }
+        .ic-ad { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+        .action-text h3 { font-size: 15px; margin-bottom: 4px; }
+        .action-text p { font-size: 12px; color: var(--text-secondary); }
+        .action-text span { color: var(--accent-green); font-weight: 600; direction: ltr; display: inline-block;}
+        .arrow { width: 28px; height: 28px; background: rgba(255,255,255,0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; transform: scaleX(-1); }
+
+        /* =========================================
+           STATS & VIEWS
+        ========================================= */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-card); padding: 16px; border-radius: 16px; border: 1px solid var(--border-card); display: flex; align-items: center; gap: 12px; }
+        .stat-card .val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+        .stat-card .lbl { font-size: 11px; color: var(--text-secondary); }
+
+        .view-section { display: none; animation: slideUp 0.4s ease; }
+        .view-section.active { display: block; }
+
+        input.modern-input { width: 100%; padding: 18px; border-radius: 14px; background: #0a0b0e; border: 1px solid var(--border-card); color: white; font-size: 14px; margin-bottom: 20px; outline: none; transition: border 0.3s; text-align: left; direction: ltr; }
+        input.modern-input:focus { border-color: var(--accent-blue); }
+
+        /* =========================================
+           BOTTOM NAVIGATION
+        ========================================= */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(20, 22, 28, 0.95); backdrop-filter: blur(10px); padding: 12px 20px 24px 20px; display: flex; justify-content: space-between; border-top: 1px solid var(--border-card); z-index: 100; direction: rtl; }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 11px; font-weight: 600; cursor: pointer; transition: color 0.3s; flex: 1; }
+        .nav-btn.active { color: var(--accent-green); }
+        .nav-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+        /* =========================================
+           ANIMATIONS
+        ========================================= */
+        @keyframes pulseCoin { 0% { transform: scale(1); box-shadow: 0 0 30px rgba(0, 152, 234, 0.4); } 100% { transform: scale(1.05); box-shadow: 0 0 60px rgba(0, 152, 234, 0.7); } }
+        @keyframes spinRing { 100% { transform: rotate(360deg); } }
+        @keyframes spinRingReverse { 100% { transform: rotate(-360deg); } }
+        @keyframes float { 0%, 100% { transform: rotate(45deg) translateY(0); } 50% { transform: rotate(45deg) translateY(-12px); } }
+        @keyframes floatFast { 0%, 100% { transform: rotate(45deg) translateY(0); } 50% { transform: rotate(45deg) translateY(-8px); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes shine { 0% { transform: translateX(-100%); } 100% { transform: translateX(300px); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseBtn { 0% { box-shadow: 0 0 0 0 rgba(0, 152, 234, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(0, 152, 234, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 152, 234, 0); } }
+        @keyframes spinOrbit { 100% { transform: rotate(360deg); } }
+        @keyframes plasmaPulse { 0% { box-shadow: inset 0 3px 12px rgba(255,255,255,0.3), 0 0 25px rgba(255,215,0,0.35); } 100% { box-shadow: inset 0 3px 12px rgba(255,255,255,0.35), 0 0 55px rgba(255,215,0,0.6); } }
+
+        /* =========================================
+           HEADER — ACTIVE BOOST BADGE
+        ========================================= */
+        .boost-badge-hdr { display: none; align-items: center; gap: 5px; background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); color: var(--star-gold); font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; margin-top: 6px; width: fit-content; direction: ltr; }
+
+        /* =========================================
+           MINER SHOP TAB
+        ========================================= */
+        .shop-header { text-align: center; margin-bottom: 16px; padding: 0 4px; }
+        .shop-header h2 { font-size: 20px; font-weight: 800; }
+        .shop-header h2 .en { display: block; font-size: 10.5px; color: var(--text-secondary); letter-spacing: 1.5px; font-weight: 700; margin-top: 4px; text-transform: uppercase; }
+        .shop-sub { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; margin-top: 8px; }
+
+        .multiplier-summary { background: linear-gradient(135deg, rgba(0, 152, 234, 0.1), rgba(31, 209, 89, 0.08)); }
+        .ms-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 7px 0; }
+        .ms-row:not(:last-child) { border-bottom: 1px dashed var(--border-card); }
+        .ms-row .ms-val { font-weight: 800; color: var(--accent-green); direction: ltr; }
+
+        .miners-grid { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+        .miner-card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 24px; padding: 22px 18px 18px; position: relative; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .miner-card.owned { border-color: var(--accent-green); box-shadow: 0 0 0 1px var(--accent-green), 0 8px 25px rgba(31,209,89,0.15); }
+        .card-t2 { border-color: rgba(0, 152, 234, 0.25); }
+        .card-t3 { border-color: rgba(139, 92, 246, 0.3); }
+        .card-t4 { border-color: rgba(255, 215, 0, 0.35); box-shadow: 0 8px 30px rgba(255, 215, 0, 0.08); }
+
+        .miner-tag { position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-secondary); }
+        .card-t2 .miner-tag { color: var(--accent-blue); border-color: rgba(0,152,234,0.35); background: rgba(0,152,234,0.1); }
+        .card-t3 .miner-tag { color: var(--tier-purple); border-color: rgba(139,92,246,0.4); background: rgba(139,92,246,0.1); }
+        .card-t4 .miner-tag { color: var(--star-gold); border-color: rgba(255,215,0,0.4); background: rgba(255,215,0,0.1); }
+
+        .owned-ribbon { position: absolute; top: 16px; right: 16px; background: rgba(31,209,89,0.15); border: 1px solid var(--accent-green); color: var(--accent-green); font-size: 10.5px; font-weight: 800; padding: 4px 10px; border-radius: 20px; }
+
+        .miner-visual-wrap { display: flex; justify-content: center; margin: 8px 0 16px; }
+        .miner-visual { width: 100px; height: 100px; border-radius: 26px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .visual-t1 { background: linear-gradient(135deg, #3a3f4b, var(--accent-green)); box-shadow: inset 0 3px 10px rgba(255,255,255,0.15), 0 10px 25px rgba(31,209,89,0.25); animation: float 4s ease-in-out infinite; }
+        .visual-t2 { background: linear-gradient(135deg, var(--accent-blue), #00436b); box-shadow: inset 0 3px 10px rgba(255,255,255,0.2), 0 12px 28px rgba(0,152,234,0.35); animation: floatFast 3.4s ease-in-out infinite; }
+        .visual-t3 { background: linear-gradient(135deg, var(--tier-purple), var(--accent-blue)); box-shadow: inset 0 3px 10px rgba(255,255,255,0.22), 0 14px 32px rgba(139,92,246,0.4); animation: floatFast 3s ease-in-out infinite; }
+        .visual-t3 svg { animation: spinOrbit 7s linear infinite; transform-origin: center; }
+        .visual-t4 { background: linear-gradient(135deg, var(--star-gold), var(--tier-purple) 55%, var(--accent-blue)); animation: plasmaPulse 1.6s ease-in-out infinite alternate; }
+
+        .miner-title { text-align: center; margin-bottom: 10px; }
+        .miner-title .ar { font-size: 16.5px; font-weight: 800; }
+        .miner-title .en { font-size: 10.5px; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; }
+
+        .boost-pill { display: block; text-align: center; background: rgba(31,209,89,0.1); color: var(--accent-green); border: 1px solid rgba(31,209,89,0.25); border-radius: 14px; padding: 9px; font-size: 13px; font-weight: 800; margin-bottom: 12px; }
+
+        .miner-desc { font-size: 12.5px; color: var(--text-secondary); text-align: center; line-height: 1.55; margin-bottom: 2px; }
+        .miner-desc-en { font-size: 11px; color: rgba(139,142,152,0.65); text-align: center; font-style: italic; margin-bottom: 12px; }
+
+        .roi-text { text-align: center; font-size: 11px; color: var(--text-secondary); background: rgba(255,255,255,0.03); border-radius: 10px; padding: 7px; margin-bottom: 14px; }
+
+        .price-row { display: flex; align-items: center; gap: 10px; }
+        .price-star { display: flex; align-items: center; justify-content: center; gap: 4px; background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.3); color: var(--star-gold); font-weight: 800; font-size: 15px; padding: 0 14px; border-radius: 14px; white-space: nowrap; direction: ltr; }
+        .btn-buy { flex: 1; border: none; outline: none; cursor: pointer; border-radius: 14px; padding: 14px; font-size: 13.5px; font-weight: 800; color: #16130a; background: linear-gradient(135deg, var(--star-gold), #f5b700); box-shadow: 0 4px 15px rgba(255,215,0,0.3); transition: all 0.2s; }
+        .btn-buy:active { transform: scale(0.96); }
+        .btn-buy.owned { background: var(--btn-disabled); color: var(--accent-green); box-shadow: none; border: 1px solid var(--accent-green); cursor: default; }
+        .btn-buy.busy { opacity: 0.6; pointer-events: none; }
+
+        .shop-footnote { font-size: 11px; color: var(--text-secondary); text-align: center; margin-top: 16px; padding: 14px; background: rgba(255,255,255,0.02); border-radius: 14px; line-height: 1.7; }
+
+        /* =========================================
+           STARS PAYMENT MODAL (DEMO / PRODUCTION)
+        ========================================= */
+        .pay-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
+        .pay-modal-overlay.open { display: flex; }
+        .pay-modal { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 22px; padding: 28px 24px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); animation: slideUp 0.3s ease; }
+        .pay-modal-star { font-size: 38px; margin-bottom: 8px; }
+        .pay-modal-title { font-size: 16.5px; font-weight: 800; margin-bottom: 6px; }
+        .pay-modal-price { font-size: 22px; font-weight: 800; color: var(--star-gold); margin-bottom: 10px; direction: ltr; }
+        .pay-modal-desc { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 22px; line-height: 1.6; }
+        .pay-modal-actions { display: flex; flex-direction: column; gap: 10px; }
+        .pay-modal-status { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 8px 0 6px; font-size: 13px; color: var(--text-secondary); }
+        .pay-spinner { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--star-gold); border-radius: 50%; animation: spinOrbit 0.8s linear infinite; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="loader-wrapper">
+            <div class="loader-ring"></div>
+            <div class="loader-ring-2"></div>
+            <div class="loader-coin">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13H5.5L12 6.5z"/></svg>
+            </div>
+        </div>
+        <div class="loader-text" id="loader-msg">جاري التهيئة...</div>
+        <div class="loader-track"><div class="loader-fill" id="loader-bar"></div></div>
+    </div>
+
+    <div id="app">
+        <header>
+            <div class="user-profile">
+                <div class="avatar" id="avatar-emoji">👨‍💻</div>
+                <div class="greeting">
+                    <h1>أهلاً بك، <span id="ui-username">معدن</span>! 👋</h1>
+                    <div class="balance-badge">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2L2 22h20L12 2z"/></svg>
+                        <span id="ui-balance-hdr" style="direction: ltr;">0.000000 TON</span>
+                        <span class="usd" id="ui-usd-hdr" style="direction: ltr;">≈ $0.00</span>
+                    </div>
+                    <div class="boost-badge-hdr" id="boost-badge-hdr">⚡ <span id="boost-badge-text">x1.00</span></div>
+                </div>
+            </div>
+        </header>
+
+        <div id="view-home" class="view-section active">
+            
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="status-title">
+                            <div class="status-dot" id="status-indicator"></div>
+                            <span id="status-text">جاهز للتعدين</span>
+                        </div>
+                        <div class="status-sub" id="status-desc">اضغط على الزر بالأسفل لبدء التعدين.</div>
+                    </div>
+                    <div class="timer-box">
+                        <div class="timer-label">الوقت المتبقي</div>
+                        <div class="timer-value" id="timer-display">03h 00m 00s</div>
+                    </div>
+                </div>
+
+                <div class="ton-visual">
+                    <div class="ton-hex" id="ton-logo-visual">
+                        <svg viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13H5.5L12 6.5z"/></svg>
+                    </div>
+                </div>
+                
+                <div class="live-counter-box">
+                    <div class="live-counter idle" id="live-mining-balance">+0.00000000</div>
+                </div>
+
+                <div class="progress-info">
+                    <span>تقدم التعدين</span>
+                    <span id="progress-percent" style="direction: ltr;">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress-bar"></div>
+                </div>
+
+                <button class="btn btn-blue" id="btn-action" onclick="handleActionClick()">
+                    <svg id="btn-icon-start" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    <svg id="btn-icon-claim" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display:none;"><path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM10 4h4v2h-4V4zm10 16H4V8h16v12z"/></svg>
+                    <span id="btn-action-text">ابدأ التعدين</span>
+                </button>
+            </div>
+
+            <div class="action-row" onclick="switchView('view-invite', 'nav-invite')">
+                <div class="action-left">
+                    <div class="icon-circle ic-invite">👥</div>
+                    <div class="action-text">
+                        <h3>دعوة الأصدقاء</h3>
+                        <p>اربح <span>0.01 TON + 10%</span> من تعدينهم</p>
+                    </div>
+                </div>
+                <div class="arrow">➔</div>
+            </div>
+
+            <div class="action-row" onclick="watchAdSim()">
+                <div class="action-left">
+                    <div class="icon-circle ic-ad">▶</div>
+                    <div class="action-text">
+                        <h3>مشاهدة الإعلانات</h3>
+                        <p>شاهد إعلاناً واربح <span>0.002 TON</span> لكل مشاهدة</p>
+                    </div>
+                </div>
+                <div class="arrow">➔</div>
+            </div>
+
+            <div class="action-row" onclick="switchView('view-shop', 'nav-shop'); renderShop();">
+                <div class="action-left">
+                    <div class="icon-circle" style="background: rgba(255,215,0,0.1); color: var(--star-gold);">🚀</div>
+                    <div class="action-text">
+                        <h3>ترقية سرعة التعدين</h3>
+                        <p>اشترِ ماينرات بنجوم تيليجرام <span>حتى +180%</span></p>
+                    </div>
+                </div>
+                <div class="arrow">➔</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="icon-circle" style="background: rgba(255,255,255,0.05); font-size:16px;">👥</div>
+                    <div><div class="lbl">المدعوين</div><div class="val" id="stat-inv">0</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon-circle" style="background: rgba(255,255,255,0.05); font-size:16px;">🛡️</div>
+                    <div><div class="lbl">المؤهلين</div><div class="val" id="stat-qual">0</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-invite" class="view-section">
+            <div class="card" style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 50px; margin-bottom: 15px;">🎁</div>
+                <h2 style="margin-bottom: 10px;">ادعُ واربح</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 25px;">قم بدعوة أصدقائك للانضمام إلى شبكة التعدين وزيادة رصيدك من الـ TON بشكل أسرع.</p>
+                
+                <div style="background: #0a0b0e; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-family: monospace; color: var(--accent-green); border: 1px solid var(--border-card); word-break: break-all; direction: ltr;" id="ref-link-display">
+                    Generating link...
+                </div>
+                
+                <button class="btn btn-green" onclick="shareRef()">
+                    ↗ مشاركة عبر تليجرام
+                </button>
+                <button class="btn" style="background: var(--bg-main); border: 1px solid var(--border-card); margin-top: 10px; color: white;" onclick="copyRef()">
+                    📋 نسخ الرابط
+                </button>
+            </div>
+        </div>
+
+        <div id="view-rewards" class="view-section">
+            <div class="card">
+                <h3 style="color: var(--text-secondary); font-weight: 500;">إجمالي الأرباح</h3>
+                <h1 style="color: var(--accent-green); font-size: 32px; margin: 10px 0 25px 0; direction: ltr; text-align: right;" id="ui-total-earned">0.000000 TON</h1>
+                
+                <div style="border-top: 1px solid var(--border-card); padding-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="display: flex; align-items: center; gap: 8px;">⛏️ التعدين</span>
+                        <span id="ui-earned-mine" style="direction: ltr;">+0.000000</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                        <span style="display: flex; align-items: center; gap: 8px;">👥 الإحالات</span>
+                        <span id="ui-earned-ref" style="direction: ltr;">+0.000000</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="display: flex; align-items: center; gap: 8px;">▶️ الإعلانات</span>
+                        <span id="ui-earned-ads" style="direction: ltr;">+0.000000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-withdraw" class="view-section">
+            <div class="card">
+                <h2>سحب TON</h2>
+                <div style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; margin: 15px 0 25px 0;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">المتاح للسحب:</span>
+                    <span style="font-weight: 700; color: var(--accent-green); direction: ltr;" id="ui-withdraw-avail">0.000000 TON</span>
+                </div>
+                
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 10px;">الحد الأدنى للسحب هو 0.5 TON.</p>
+                <input type="text" class="modern-input" id="wallet-input" placeholder="أدخل عنوان محفظة TON (EQ...)">
+                
+                <button class="btn btn-green" onclick="requestWithdraw()">طلب السحب</button>
+            </div>
+        </div>
+
+        <div id="view-shop" class="view-section">
+            <div class="shop-header">
+                <h2>متجر الماينرات <span class="en">Miner Store</span></h2>
+                <p class="shop-sub">قم بترقية جهاز التعدين الخاص بك باستخدام نجوم تيليجرام ⭐ وسرّع أرباحك من TON بشكل فوري ودائم!</p>
+            </div>
+
+            <div class="card multiplier-summary">
+                <div id="multiplier-summary-body"><!-- يتم ملؤها ديناميكياً عبر renderShop() --></div>
+            </div>
+
+            <div class="miners-grid" id="miners-grid">
+                <!-- بطاقات الماينرات تُبنى ديناميكياً بواسطة renderShop() من مصفوفة MINERS -->
+            </div>
+
+            <div class="shop-footnote">
+                🔒 اقتصاد متوازن: كل ترقية تحتاج عادةً لعدة أيام من التعدين النشط حتى تسترد قيمتها، ويظل الحد الأدنى للسحب (0.5 TON) ساري المفعول على كل السحوبات.
+            </div>
+        </div>
+    </div>
+
+    <div class="pay-modal-overlay" id="pay-modal-overlay">
+        <div class="pay-modal">
+            <div class="pay-modal-star" id="pay-modal-star-icon">⭐</div>
+            <div class="pay-modal-title" id="pay-modal-title">-</div>
+            <div class="pay-modal-price" id="pay-modal-price">⭐ 0</div>
+            <div class="pay-modal-desc">تأكيد الدفع عبر نجوم تيليجرام. (وضع المحاكاة/الاختبار لواجهة الدفع)</div>
+
+            <div class="pay-modal-status" id="pay-modal-status" style="display:none;">
+                <div class="pay-spinner"></div>
+                <span id="pay-modal-status-text">جاري معالجة الدفع...</span>
+            </div>
+
+            <div class="pay-modal-actions" id="pay-modal-actions">
+                <button class="btn btn-green" onclick="confirmDemoPayment()">✓ تأكيد الدفع (محاكاة)</button>
+                <button class="btn" style="background: var(--bg-main); border: 1px solid var(--border-card); color: white;" onclick="closePayModal(false)">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-btn active" id="nav-home" onclick="switchView('view-home', 'nav-home')">
+            <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span>الرئيسية</span>
+        </div>
+        <div class="nav-btn" id="nav-shop" onclick="switchView('view-shop', 'nav-shop'); renderShop();">
+            <svg viewBox="0 0 24 24"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg>
+            <span>المتجر</span>
+        </div>
+        <div class="nav-btn" id="nav-invite" onclick="switchView('view-invite', 'nav-invite')">
+            <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            <span>دعوة</span>
+        </div>
+        <div class="nav-btn" id="nav-rewards" onclick="switchView('view-rewards', 'nav-rewards')">
+            <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.1 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76l1-1.36 1 1.36L15.38 12 17 10.83 14.92 8H20v6z"/></svg>
+            <span>المكافآت</span>
+        </div>
+        <div class="nav-btn" id="nav-withdraw" onclick="switchView('view-withdraw', 'nav-withdraw')">
+            <svg viewBox="0 0 24 24"><path d="M21 7.28V5c0-1.1-.9-2-2-2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-2.28c.59-.35 1-.98 1-1.72V9c0-.74-.41-1.37-1-1.72zM20 9v6h-7V9h7zM5 19V5h14v2h-6c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h6v2H5z"/><circle cx="16" cy="12" r="1.5"/></svg>
+            <span>سحب</span>
+        </div>
+    </nav>
+
+    <script>
+        // --- 1. STATE MANAGEMENT ---
+        const tg = window.Telegram.WebApp;
+        let currentUserId = Math.floor(Math.random() * 10000000); 
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            currentUserId = tg.initDataUnsafe.user.id;
+        }
+
+        const DB_KEY = `ton_miner_premium_state_v3_${currentUserId}`; 
+
+        const CONFIG = {
+            tonPriceUsd: 3.75,
+            rewardPerCycle: 0.00625,
+            cycleDurationMs: 3 * 60 * 60 * 1000, // 3 Hours
+            adReward: 0.002
+        };
+
+        // =========================================
+        // MINER SHOP CONFIG (TELEGRAM STARS ⭐)
+        // =========================================
+        // Approximate USD value of 1 Telegram Star, used ONLY to estimate
+        // "days to break even" shown on shop cards. Telegram's real
+        // Star-to-fiat rate is set by Telegram/App Store/Play Store and
+        // isn't exposed to Mini Apps — this is a rough internal constant
+        // for economic-balancing display purposes only.
+        const STAR_VALUE_USD = 0.015;
+
+        const PRODUCTION_INVOICE_ENABLED = true;
+        const BACKEND_INVOICE_ENDPOINT = 'https://holy-resonance-e8be.kyammahmad73.workers.dev/';
+
+        const MINERS = [
+            {
+                id: 't1', theme: 't1', tier: 1,
+                nameAr: 'ماءينر المبتدئ', nameEn: 'Micro Spark',
+                price: 1, boost: 5,
+                descAr: 'مثالي لتجربة التعدين المدفوع لأول مرة.',
+                descEn: 'Perfect for trying out paid mining.',
+                tag: null
+            },
+            {
+                id: 't2', theme: 't2', tier: 2,
+                nameAr: 'ماءينر السايبر', nameEn: 'Cyber Rig',
+                price: 49, boost: 35,
+                descAr: 'ترقية قوية تناسب المعدّنين اليوميين.',
+                descEn: 'Solid performance upgrade for daily earners.',
+                tag: { ar: '🔥 الأكثر طلباً', en: 'POPULAR' }
+            },
+            {
+                id: 't3', theme: 't3', tier: 3,
+                nameAr: 'ماءينر الكوانتوم', nameEn: 'Quantum Core',
+                price: 99, boost: 80,
+                descAr: 'جهاز فائق القوة مصمم لتسريع الأرباح لأقصى درجة.',
+                descEn: 'High-power rig designed for maximum profit acceleration.',
+                tag: { ar: '⭐ الأفضل قيمة', en: 'BEST VALUE' }
+            },
+            {
+                id: 't4', theme: 't4', tier: 4,
+                nameAr: 'ماءينر التيتانيوم الأسطوري', nameEn: 'Titanium Fusion',
+                price: 199, boost: 180,
+                descAr: 'آلة التعدين الأسطورية لأقصى دخل سلبي ممكن!',
+                descEn: 'The ultimate mining machine for maximum passive income!',
+                tag: { ar: '👑 أسطوري', en: 'LEGENDARY' }
+            }
+        ];
+
+        let globalTimeOffset = 0;
+        let isTimeSynced = false;
+        let syncMonotonicAnchor = 0;
+        let lastVerifiedRealTime = 0;
+        const TIME_ANCHOR_KEY = `ton_miner_time_anchor_${currentUserId}`;
+
+        // Initialize state
+        let state = JSON.parse(localStorage.getItem(DB_KEY));
+        if (!state) {
+            state = {
+                balance: 0.000000,
+                earnedMining: 0.000000,
+                earnedAds: 0.000000,
+                earnedRefs: 0.000000,
+                sessionStartedAt: null,
+                isMining: false,
+                userId: currentUserId,
+                username: (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.first_name : 'صديقي',
+                invited: 0,
+                qualified: 0,
+                purchasedMiners: [],   // { id, nameAr, nameEn, price, boost, purchasedAt }[]
+                totalMultiplier: 1.0   // 1.0 = base speed, e.g. 1.35 = +35%
+            };
+            saveState();
+        }
+
+        // --- Shop-state migration (covers users who had a state saved
+        // before the Miner Shop existed) ---
+        if (!Array.isArray(state.purchasedMiners)) state.purchasedMiners = [];
+        if (typeof state.totalMultiplier !== 'number') state.totalMultiplier = 1.0;
+        recalcMultiplier(); // function declared below — safe due to hoisting
+        saveState();
+
+        function saveState() {
+            localStorage.setItem(DB_KEY, JSON.stringify(state));
+        }
+
+        const TIME_SOURCES = [
+            async () => {
+                const res = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC', { cache: 'no-store' });
+                if (!res.ok) throw new Error('worldtimeapi error');
+                const data = await res.json();
+                return new Date(data.utc_datetime).getTime();
+            },
+            async () => {
+                const res = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=UTC', { cache: 'no-store' });
+                if (!res.ok) throw new Error('timeapi.io error');
+                const data = await res.json();
+                return new Date(data.dateTime + 'Z').getTime();
+            }
+        ];
+
+        async function syncGlobalTime() {
+            for (const getServerTime of TIME_SOURCES) {
+                try {
+                    const perfStart = performance.now();
+                    const deviceStart = Date.now();
+                    const serverTime = await getServerTime();
+                    const perfEnd = performance.now();
+
+                    const latency = (perfEnd - perfStart) / 2;
+                    const correctedServerTime = serverTime + latency;
+
+                    syncMonotonicAnchor = perfEnd;
+                    lastVerifiedRealTime = correctedServerTime;
+                    globalTimeOffset = correctedServerTime - deviceStart;
+                    isTimeSynced = true;
+
+                    try {
+                        localStorage.setItem(TIME_ANCHOR_KEY, JSON.stringify({
+                            realTime: correctedServerTime,
+                            deviceTime: Date.now()
+                        }));
+                    } catch (e) {}
+
+                    return true;
+                } catch (error) {}
+            }
+
+            isTimeSynced = false;
+            return false;
+        }
+
+        function getGlobalTime() {
+            if (isTimeSynced) {
+                const elapsedSinceSync = performance.now() - syncMonotonicAnchor;
+                return lastVerifiedRealTime + elapsedSinceSync;
+            }
+
+            try {
+                const saved = JSON.parse(localStorage.getItem(TIME_ANCHOR_KEY));
+                if (saved && saved.realTime && saved.deviceTime) {
+                    const estimated = saved.realTime + (Date.now() - saved.deviceTime);
+                    return Math.max(estimated, saved.realTime);
+                }
+            } catch (e) {}
+
+            return Date.now();
+        }
+
+        // --- 2. INITIALIZATION & TELEGRAM SDK ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            tg.expand();
+            
+            document.getElementById('ui-username').innerText = state.username;
+            document.getElementById('ref-link-display').innerText = `https://t.me/PremiumMinerBot?start=ref_${state.userId}`;
+            
+            updateUIBalances();
+            renderShop();
+            await syncGlobalTime(); 
+            runLoadingSequence();
+        });
+
+        setInterval(syncGlobalTime, 5 * 60 * 1000); 
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                syncGlobalTime();
+            }
+        });
+
+        // --- 3. LOADING SEQUENCE ---
+        function runLoadingSequence() {
+            const steps = [
+                "جاري الاتصال الآمن...",
+                "جاري تحميل ملف التعدين...",
+                "جاري التحقق من التوقيت...",
+                "جاري تجهيز المكافآت...",
+                "جاري مزامنة الرصيد...",
+                "على وشك الانتهاء..."
+            ];
+            const msgEl = document.getElementById('loader-msg');
+            const barEl = document.getElementById('loader-bar');
+            
+            let tick = 0;
+            const loaderInt = setInterval(() => {
+                tick++;
+                barEl.style.width = `${(tick / 6) * 100}%`;
+                if(tick < 6) msgEl.innerText = steps[tick-1];
+                
+                if(tick === 7) {
+                    clearInterval(loaderInt);
+                    msgEl.innerText = "✓ تمت التهيئة بنجاح";
+                    msgEl.style.color = "var(--accent-green)";
+                    
+                    setTimeout(() => {
+                        const loader = document.getElementById('loader');
+                        loader.style.opacity = '0';
+                        loader.style.transform = 'scale(1.05)';
+                        setTimeout(() => {
+                            loader.style.display = 'none';
+                            const app = document.getElementById('app');
+                            app.style.display = 'block';
+                            requestAnimationFrame(() => {
+                                app.style.opacity = '1';
+                                app.style.transition = 'opacity 0.4s ease';
+                            });
+                            
+                            initMiningUI();
+                        }, 600);
+                    }, 500);
+                }
+            }, 800); 
+        }
+
+        // --- 4. CORE MINING LOGIC ---
+        let miningAnimationFrame;
+        
+        function initMiningUI() {
+            if (state.isMining && state.sessionStartedAt) {
+                const now = getGlobalTime();
+                const elapsed = now - state.sessionStartedAt;
+
+                if (elapsed < 0) {
+                     state.sessionStartedAt = now;
+                     saveState();
+                }
+
+                if (elapsed >= CONFIG.cycleDurationMs) {
+                    renderRewardReady();
+                } else {
+                    requestAnimationFrame(miningLoop);
+                }
+            } else {
+                renderIdleState();
+            }
+        }
+
+        function handleActionClick() {
+            if (!state.isMining) {
+                state.isMining = true;
+                state.sessionStartedAt = getGlobalTime();
+                saveState();
+                
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                requestAnimationFrame(miningLoop);
+            } else {
+                const now = getGlobalTime();
+                const elapsed = now - state.sessionStartedAt;
+                if (elapsed >= CONFIG.cycleDurationMs) {
+                    claimReward();
+                } else {
+                    tg.showAlert("التعدين لم يكتمل بعد!");
+                }
+            }
+        }
+
+        function miningLoop() {
+            if (!state.isMining) return;
+
+            const now = getGlobalTime();
+            let elapsed = now - state.sessionStartedAt;
+            
+            if (elapsed < 0) {
+                elapsed = 0;
+                state.sessionStartedAt = now;
+                saveState();
+            }
+
+            let percent = Math.min((elapsed / CONFIG.cycleDurationMs) * 100, 100);
+            const remainingMs = Math.max(0, CONFIG.cycleDurationMs - elapsed);
+            
+            const cycleReward = getCycleReward(); // base reward boosted by purchased miners
+            let liveEarned = (elapsed / CONFIG.cycleDurationMs) * cycleReward;
+            if (liveEarned > cycleReward) liveEarned = cycleReward;
+            if (liveEarned < 0) liveEarned = 0;
+            
+            const liveCounter = document.getElementById('live-mining-balance');
+            liveCounter.innerText = `+${liveEarned.toFixed(8)}`;
+            liveCounter.classList.remove('idle');
+            
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-percent').innerText = `${Math.floor(percent)}%`;
+            document.getElementById('ton-logo-visual').classList.add('active-mining');
+            
+            const statusText = document.getElementById('status-text');
+            const statusDesc = document.getElementById('status-desc');
+            const dot = document.getElementById('status-indicator');
+            
+            statusText.innerText = "جاري التعدين الآن...";
+            statusText.style.color = "var(--text-primary)";
+            statusDesc.innerText = "جهازك يعمل بأقصى طاقة لجمع الـ TON";
+            dot.classList.add('active');
+
+            const btn = document.getElementById('btn-action');
+            document.getElementById('btn-icon-start').style.display = 'none';
+            document.getElementById('btn-icon-claim').style.display = 'none';
+            
+            const h = Math.floor(remainingMs / 3600000).toString().padStart(2, '0');
+            const m = Math.floor((remainingMs % 3600000) / 60000).toString().padStart(2, '0');
+            const s = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, '0');
+            document.getElementById('timer-display').innerText = `${h}h ${m}m ${s}s`;
+
+            if (percent >= 100) {
+                renderRewardReady();
+            } else {
+                btn.className = 'btn btn-disabled';
+                document.getElementById('btn-action-text').innerText = "جاري التعدين...";
+                miningAnimationFrame = requestAnimationFrame(miningLoop);
+            }
+        }
+        
+        function renderRewardReady() {
+            const btn = document.getElementById('btn-action');
+            const statusText = document.getElementById('status-text');
+            const statusDesc = document.getElementById('status-desc');
+            const dot = document.getElementById('status-indicator');
+            
+            document.getElementById('progress-bar').style.width = `100%`;
+            document.getElementById('progress-percent').innerText = `100%`;
+            document.getElementById('timer-display').innerText = `00h 00m 00s`;
+            document.getElementById('live-mining-balance').innerText = `+${getCycleReward().toFixed(8)}`;
+
+            btn.className = 'btn btn-green';
+            document.getElementById('btn-action-text').innerText = `المطالبة بـ ${getCycleReward().toFixed(6)} TON`;
+            document.getElementById('btn-icon-claim').style.display = 'block';
+            document.getElementById('btn-icon-start').style.display = 'none';
+            
+            statusText.innerText = "المكافأة جاهزة!";
+            statusText.style.color = "var(--accent-green)";
+            statusDesc.innerText = "اضغط للمطالبة بمكافأتك الآن.";
+            dot.classList.remove('active');
+            document.getElementById('ton-logo-visual').classList.remove('active-mining');
+            
+            if (miningAnimationFrame) cancelAnimationFrame(miningAnimationFrame);
+        }
+
+        function renderIdleState() {
+            document.getElementById('progress-bar').style.width = `0%`;
+            document.getElementById('progress-percent').innerText = `0%`;
+            document.getElementById('timer-display').innerText = `03h 00m 00s`;
+            
+            const liveCounter = document.getElementById('live-mining-balance');
+            liveCounter.innerText = `+0.00000000`;
+            liveCounter.classList.add('idle');
+            
+            document.getElementById('ton-logo-visual').classList.remove('active-mining');
+            
+            const statusText = document.getElementById('status-text');
+            const statusDesc = document.getElementById('status-desc');
+            const dot = document.getElementById('status-indicator');
+            
+            statusText.innerText = "جاهز للتعدين";
+            statusText.style.color = "var(--text-primary)";
+            statusDesc.innerText = "اضغط على الزر بالأسفل لبدء التعدين.";
+            dot.classList.remove('active');
+            
+            const btn = document.getElementById('btn-action');
+            btn.className = 'btn btn-blue';
+            document.getElementById('btn-action-text').innerText = "ابدأ التعدين";
+            document.getElementById('btn-icon-start').style.display = 'block';
+            document.getElementById('btn-icon-claim').style.display = 'none';
+        }
+
+        function claimReward() {
+            const now = getGlobalTime();
+            if (now - state.sessionStartedAt < CONFIG.cycleDurationMs) {
+                tg.showAlert("عذراً، التعدين لم يكتمل بعد. يرجى الانتظار.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-action');
+            btn.className = 'btn btn-disabled';
+            document.getElementById('btn-action-text').innerText = "جاري المعالجة...";
+            document.getElementById('btn-icon-claim').style.display = 'none';
+            
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            setTimeout(() => {
+                const reward = getCycleReward(); // boosted by purchased miners
+                state.balance += reward;
+                state.earnedMining += reward;
+                state.isMining = false;
+                state.sessionStartedAt = null;
+                saveState();
+                
+                updateUIBalances();
+                renderIdleState();
+                
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }, 800); 
+        }
+
+        // --- 5. UI UPDATES & NAVIGATION ---
+        function updateUIBalances() {
+            const balStr = state.balance.toFixed(6);
+            const usdStr = (state.balance * CONFIG.tonPriceUsd).toFixed(2);
+            
+            document.getElementById('ui-balance-hdr').innerText = `${balStr} TON`;
+            document.getElementById('ui-usd-hdr').innerText = `≈ $${usdStr}`;
+            
+            document.getElementById('ui-total-earned').innerText = `${balStr} TON`;
+            document.getElementById('ui-earned-mine').innerText = `+${state.earnedMining.toFixed(6)}`;
+            document.getElementById('ui-earned-ads').innerText = `+${state.earnedAds.toFixed(6)}`;
+            document.getElementById('ui-earned-ref').innerText = `+${state.earnedRefs.toFixed(6)}`;
+            
+            document.getElementById('ui-withdraw-avail').innerText = `${balStr} TON`;
+            
+            document.getElementById('stat-inv').innerText = state.invited;
+            document.getElementById('stat-qual').innerText = state.qualified;
+
+            const boostBadge = document.getElementById('boost-badge-hdr');
+            if (boostBadge) {
+                if (state.totalMultiplier > 1) {
+                    boostBadge.style.display = 'inline-flex';
+                    document.getElementById('boost-badge-text').innerText = `x${state.totalMultiplier.toFixed(2)} تعزيز نشط`;
+                } else {
+                    boostBadge.style.display = 'none';
+                }
+            }
+        }
+
+        function switchView(viewId, navId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(viewId).classList.add('active');
+            document.getElementById(navId).classList.add('active');
+            
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        // --- 6. ACTIONS ---
+        function watchAdSim() {
+            // Rewarded interstitial
+            show_11693797().then(() => {
+                // إضافة المكافأة للمستخدم بعد مشاهدة الإعلان
+                state.balance += CONFIG.adReward;
+                state.earnedAds += CONFIG.adReward;
+                saveState();
+                updateUIBalances();
+
+                alert('You have seen an ad!');
+            });
+        }
+
+        function shareRef() {
+            const link = `https://t.me/PremiumMinerBot?start=ref_${state.userId}`;
+            const text = "💎 قم بتعدين TON مجاناً مع هذا التطبيق المميز! سريع وآمن.";
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+        }
+
+        function copyRef() {
+            const link = document.getElementById('ref-link-display').innerText;
+            navigator.clipboard.writeText(link).then(() => {
+                tg.showAlert("تم نسخ رابط الدعوة بنجاح!");
+            });
+        }
+
+        // --- 7. MINER SHOP (TELEGRAM STARS ⭐) ---
+
+        // Recomputes state.totalMultiplier from state.purchasedMiners.
+        // Boosts are additive on top of the base 1.0x rate (e.g. owning
+        // +5% and +35% miners together = 1.40x, not 1.05 * 1.35).
+        function recalcMultiplier() {
+            const boostSum = state.purchasedMiners.reduce((sum, m) => sum + (m.boost / 100), 0);
+            state.totalMultiplier = parseFloat((1 + boostSum).toFixed(4));
+        }
+
+        // The actual TON reward for one full mining cycle, after boosts.
+        function getCycleReward() {
+            return CONFIG.rewardPerCycle * state.totalMultiplier;
+        }
+
+        function isMinerOwned(minerId) {
+            return state.purchasedMiners.some(m => m.id === minerId);
+        }
+
+        // Rough "days to break even" estimate for a given tier, based on
+        // STAR_VALUE_USD and the app's current cycle economics. Used only
+        // to show a transparent, dynamically-computed hint on each card —
+        // it updates automatically if CONFIG values ever change.
+        function calcBreakEvenDays(starPrice, boostPercent) {
+            const cyclesPerDay = (24 * 60 * 60 * 1000) / CONFIG.cycleDurationMs;
+            const baseDailyTon = cyclesPerDay * CONFIG.rewardPerCycle;
+            const extraDailyUsd = baseDailyTon * (boostPercent / 100) * CONFIG.tonPriceUsd;
+            const costUsd = starPrice * STAR_VALUE_USD;
+            if (extraDailyUsd <= 0) return null;
+            return costUsd / extraDailyUsd;
+        }
+
+        function getMinerIcon(theme) {
+            switch (theme) {
+                case 't1': // Micro Spark — simple bolt
+                    return `<svg viewBox="0 0 24 24" width="40" height="40"><path fill="white" d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>`;
+                case 't2': // Cyber Rig — chip / circuit
+                    return `<svg viewBox="0 0 24 24" width="42" height="42">
+                        <rect x="7" y="7" width="10" height="10" rx="1.5" fill="white"/>
+                        <path stroke="white" stroke-width="1.4" stroke-linecap="round" fill="none" d="M9 2v3M12 2v3M15 2v3M9 19v3M12 19v3M15 19v3M2 9h3M2 12h3M2 15h3M19 9h3M19 12h3M19 15h3"/>
+                    </svg>`;
+                case 't3': // Quantum Core — orbiting atom
+                    return `<svg viewBox="0 0 24 24" width="46" height="46">
+                        <circle cx="12" cy="12" r="2.4" fill="white"/>
+                        <ellipse cx="12" cy="12" rx="10" ry="4.2" fill="none" stroke="white" stroke-width="1.3" opacity="0.9"/>
+                        <ellipse cx="12" cy="12" rx="10" ry="4.2" fill="none" stroke="white" stroke-width="1.3" opacity="0.9" transform="rotate(60 12 12)"/>
+                        <ellipse cx="12" cy="12" rx="10" ry="4.2" fill="none" stroke="white" stroke-width="1.3" opacity="0.9" transform="rotate(120 12 12)"/>
+                    </svg>`;
+                case 't4': // Titanium Fusion — layered fusion core
+                    return `<svg viewBox="0 0 24 24" width="46" height="46">
+                        <path fill="none" stroke="white" stroke-width="1.2" opacity="0.55" d="M12 2 21 8v8l-9 6-9-6V8z"/>
+                        <path fill="white" opacity="0.92" d="M12 6 17 9.5v5L12 18l-5-3.5v-5z"/>
+                        <path fill="#ffd700" d="M12 9 14.2 10.5v3L12 15l-2.2-1.5v-3z"/>
+                    </svg>`;
+                default:
+                    return '';
+            }
+        }
+
+        function renderShop() {
+            const grid = document.getElementById('miners-grid');
+            const summaryEl = document.getElementById('multiplier-summary-body');
+            if (!grid || !summaryEl) return;
+
+            grid.innerHTML = MINERS.map(m => {
+                const owned = isMinerOwned(m.id);
+                const roiDays = calcBreakEvenDays(m.price, m.boost);
+                const roiText = roiDays ? `⏱️ يسترد تكلفته تقريباً خلال ${Math.max(1, Math.round(roiDays))} يوم تعدين نشط` : '';
+
+                return `
+                <div class="miner-card card-${m.theme} ${owned ? 'owned' : ''}">
+                    ${m.tag ? `<div class="miner-tag">${m.tag.ar} · ${m.tag.en}</div>` : ''}
+                    ${owned ? `<div class="owned-ribbon">✓ مفعّل</div>` : ''}
+
+                    <div class="miner-visual-wrap">
+                        <div class="miner-visual visual-${m.theme}">${getMinerIcon(m.theme)}</div>
+                    </div>
+
+                    <div class="miner-title">
+                        <div class="ar">${m.nameAr}</div>
+                        <div class="en">${m.nameEn}</div>
+                    </div>
+
+                    <div class="boost-pill">⚡ +${m.boost}% سرعة التعدين والعائد</div>
+
+                    <p class="miner-desc">${m.descAr}</p>
+                    <p class="miner-desc-en">${m.descEn}</p>
+
+                    ${roiText ? `<div class="roi-text">${roiText}</div>` : ''}
+
+                    <div class="price-row">
+                        <div class="price-star">⭐ ${m.price}</div>
+                        <button class="btn-buy ${owned ? 'owned' : ''}" id="buy-btn-${m.id}"
+                            ${owned ? 'disabled' : `onclick="buyMiner('${m.id}', ${m.price}, ${m.boost})"`}>
+                            ${owned ? '✓ مفعّل / Active' : 'شراء الآن'}
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            const totalBoostPercent = Math.round((state.totalMultiplier - 1) * 100);
+            summaryEl.innerHTML = `
+                <div class="ms-row">
+                    <span>⚡ إجمالي تعزيز السرعة</span>
+                    <span class="ms-val">+${totalBoostPercent}% (×${state.totalMultiplier.toFixed(2)})</span>
+                </div>
+                <div class="ms-row">
+                    <span>💎 عائد الدورة الحالي</span>
+                    <span class="ms-val">${getCycleReward().toFixed(6)} TON</span>
+                </div>
+                <div class="ms-row">
+                    <span>🛠️ الماينرات المملوكة</span>
+                    <span class="ms-val" style="color: var(--text-primary);">${state.purchasedMiners.length} / ${MINERS.length}</span>
+                </div>
+            `;
+        }
+
+        function setMinerCardBusy(minerId, busy) {
+            const btn = document.getElementById(`buy-btn-${minerId}`);
+            if (!btn) return;
+            if (busy) {
+                btn.dataset.originalText = btn.innerText;
+                btn.classList.add('busy');
+                btn.innerText = 'جاري المعالجة...';
+            } else {
+                btn.classList.remove('busy');
+                if (btn.dataset.originalText) btn.innerText = btn.dataset.originalText;
+            }
+        }
+
+        // Entry point for every "شراء الآن" button.
+        // Signature matches the spec: buyMiner(minerId, starPrice, speedMultiplier)
+        async function buyMiner(minerId, starPrice, speedMultiplier) {
+            const miner = MINERS.find(m => m.id === minerId);
+            if (!miner) return;
+
+            if (isMinerOwned(minerId)) {
+                tg.showAlert('لديك هذا الماينر بالفعل وهو مفعّل حالياً! ⚡');
+                return;
+            }
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            setMinerCardBusy(minerId, true);
+
+            // ==================================================================
+            // 🔴 PRODUCTION MODE — Real Telegram Stars payment
+            // ==================================================================
+            if (PRODUCTION_INVOICE_ENABLED) {
+                try {
+                    const res = await fetch(BACKEND_INVOICE_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: state.userId, minerId: miner.id, stars: starPrice })
+                    });
+                    const data = await res.json();
+                    const invoiceLink = data.invoiceLink; // returned by YOUR backend
+
+                    tg.openInvoice(invoiceLink, function (status) {
+                        setMinerCardBusy(minerId, false);
+                        if (status === 'paid') {
+                            handlePurchaseSuccess(miner);
+                        } else if (status === 'cancelled') {
+                            tg.showAlert('تم إلغاء عملية الدفع.');
+                        } else {
+                            tg.showAlert('تعذر إتمام الدفع، حاول مرة أخرى.');
+                        }
+                    });
+                } catch (err) {
+                    setMinerCardBusy(minerId, false);
+                    tg.showAlert('حدث خطأ أثناء إنشاء الفاتورة. حاول لاحقاً.');
+                }
+                return;
+            }
+
+            // ==================================================================
+            // 🟢 DEMO / SIMULATION MODE (default — no backend required)
+            // ==================================================================
+            openPayModal(miner, starPrice);
+        }
+
+        let pendingPurchase = null;
+
+        function openPayModal(miner, starPrice) {
+            pendingPurchase = { miner, starPrice };
+            document.getElementById('pay-modal-title').innerText = `${miner.nameAr} / ${miner.nameEn}`;
+            document.getElementById('pay-modal-price').innerText = `⭐ ${starPrice} Stars`;
+            document.getElementById('pay-modal-actions').style.display = 'flex';
+            document.getElementById('pay-modal-status').style.display = 'none';
+            document.getElementById('pay-modal-overlay').classList.add('open');
+        }
+
+        function closePayModal(success) {
+            document.getElementById('pay-modal-overlay').classList.remove('open');
+            if (!success && pendingPurchase) {
+                setMinerCardBusy(pendingPurchase.miner.id, false);
+            }
+            pendingPurchase = null;
+        }
+
+        function confirmDemoPayment() {
+            if (!pendingPurchase) return;
+            const { miner } = pendingPurchase;
+
+            document.getElementById('pay-modal-actions').style.display = 'none';
+            document.getElementById('pay-modal-status').style.display = 'flex';
+            document.getElementById('pay-modal-status-text').innerText = 'جاري معالجة الدفع عبر تيليجرام...';
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+            // Simulated processing delay so the UI states are testable
+            setTimeout(() => {
+                document.getElementById('pay-modal-status-text').innerText = '✓ تم الدفع بنجاح!';
+                setTimeout(() => {
+                    closePayModal(true);
+                    handlePurchaseSuccess(miner);
+                }, 500);
+            }, 1400);
+        }
+
+        function handlePurchaseSuccess(miner) {
+            state.purchasedMiners.push({
+                id: miner.id,
+                nameAr: miner.nameAr,
+                nameEn: miner.nameEn,
+                price: miner.price,
+                boost: miner.boost,
+                purchasedAt: getGlobalTime()
+            });
+            recalcMultiplier();
+            saveState();
+
+            updateUIBalances();
+            renderShop();
+
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+            const message = `تم تفعيل ${miner.nameAr} (${miner.nameEn}) — تعزيز التعدين +${miner.boost}% ⚡`;
+            if (tg.showPopup) {
+                tg.showPopup({ title: '🎉 تم الشراء بنجاح!', message, buttons: [{ type: 'ok' }] });
+            } else {
+                tg.showAlert(message);
+            }
+        }
+
+        function requestWithdraw() {
+            const address = document.getElementById('wallet-input').value.trim();
+
+            if (address.length === 0) {
+                tg.showAlert("من فضلك ضع عنوان محفظة TON الخاص بك أولاً.");
+                return;
+            }
+            if (address.length < 20) {
+                tg.showAlert("الرجاء إدخال عنوان محفظة TON صالح.");
+                return;
+            }
+            if (state.balance < 0.5) {
+                tg.showAlert("رصيدك لسه مايكفيش للسحب. كمّل تعدين وجمّع شوية TON كمان لحد ما توصل للحد الأدنى (0.5 TON).");
+                return;
+            }
+
+            tg.showAlert("تم طلب السحب بنجاح! (هذه محاكاة فقط في الوقت الحالي).");
+        }
+    </script>
+</body>
+</html>
